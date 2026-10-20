@@ -1,0 +1,48 @@
+# IntelliJ and Eclipse
+.idea/
+*.iml
+.settings/
+.classpath
+.project
+.vscode/
+
+# Maven build outputs
+target/
+*.log
+*.class
+*.jar
+*.war
+
+# Certificates and private keys
+*.p12
+*.jks
+*.keystore
+*.key
+*.pem
+*.pfx
+*.p8
+*.ppk
+*.cer
+*.crt
+*.truststore
+id_rsa
+id_ed25519
+
+# Environment files
+.env
+.env.*
+
+# Local Maven credentials
+settings.xml
+
+# Assignment archives and generated dependency reports
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+dependency-check-report.*
+
+# Operating system files
+.DS_Store
+Thumbs.db
