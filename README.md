@@ -30,6 +30,25 @@ Project Two adds and tests checksum generation and encrypted transport. Its hist
 
 Java, Spring Boot 2.2.4.RELEASE, Maven, JUnit 5, Spring MockMvc, OWASP Dependency-Check, Java Keytool, PowerShell, and IntelliJ IDEA. Project One used Dependency-Check 12.2.2; Project Two uses 13.0.0. Local build and run instructions are in the [Project Two README](project-two/README.md).
 
+## CI/CD
+
+The GitHub Actions workflows add build checks and security analysis. They do not deploy the application.
+
+| Workflow | Runs | Purpose |
+| --- | --- | --- |
+| [Java CI](.github/workflows/java-ci.yml) | PRs to `main`, pushes to `main`, and manual runs | Builds Project Two with Temurin Java 11 and Maven `clean package`; runs the context and `/hash` tests and uploads test results |
+| [CodeQL](.github/workflows/codeql.yml) | PRs to `main`, pushes to `main`, Tuesdays at 06:23 UTC, and manual runs | Analyzes the compiled Java application and publishes findings to code scanning after advanced setup is confirmed |
+| [Dependency Review](.github/workflows/dependency-review.yml) | PRs to `main` | Fails when dependency changes introduce known high or critical vulnerabilities, including development and unknown scopes |
+| [OWASP Dependency-Check](.github/workflows/dependency-check.yml) | Wednesdays at 07:41 UTC and manual runs from `main` | Assesses the existing dependency baseline and uploads an HTML report |
+
+Ordinary Java CI needs no NVD API key, certificate, or keystore password. These are MockMvc tests; they do not test HTTPS/TLS. Passing CI does not mean the application is free of security vulnerabilities. The historical Project Two baseline remains **254 findings across 14 vulnerable dependencies**.
+
+Dependency Review checks what a PR introduces. Dependency-Check assesses the existing application dependencies and needs the `NVD_API_KEY` repository secret. Configure that secret with a new or rotated key; do not reuse a key from an old assignment archive. A missing secret fails the scan workflow without claiming an assessment ran. A completed scan can still report vulnerabilities.
+
+The recommended required PR checks are **Build and Test** and **Review Dependency Changes**. Add **Analyze Java** after CodeQL setup and a hosted run are verified. Failed checks block merging only when branch protection or a ruleset requires them. Java CI and Dependency Review have no path filters, so documentation-only PRs still receive checks. The scheduled baseline scan is separate from PR validation.
+
+See [Project Two CI/CD setup and limitations](project-two/README.md#cicd) for CodeQL configuration, NVD secret setup, manual scans, and result locations. Repository security settings and hosted workflow results were not verified with the read-only implementation account.
+
 ## What I Learned
 
 Connecting individual code decisions with potential security risks helped me a great deal during the manual assessment. Aside from the vulnerable dependencies, credentials in the source code, excessive permissions, missing validation, and unsafe error handling also have to be addressed.

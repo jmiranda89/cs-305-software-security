@@ -1,0 +1,75 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '23 6 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze Java
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      # Default setup could not be inspected with the implementation account.
+      # The owner must disable it before opting in to this advanced workflow.
+      - name: Require confirmed advanced setup
+        env:
+          CODEQL_ADVANCED_SETUP: ${{ vars.CODEQL_ADVANCED_SETUP }}
+        run: |
+          if [[ "$CODEQL_ADVANCED_SETUP" != 'true' ]]; then
+            echo '::error::CodeQL did not run. Confirm default setup is disabled, then set the repository variable CODEQL_ADVANCED_SETUP to true.'
+            echo 'CodeQL did not run: advanced setup needs owner confirmation. See project-two/README.md.' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 11 and Maven cache
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+          cache-dependency-path: project-two/application/pom.xml
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+          overwrite-settings: false
+
+      - name: Prepare temporary source and build directory
+        run: |
+          mkdir -p "$RUNNER_TEMP/cs305/project-two"
+          cp -R project-two/application "$RUNNER_TEMP/cs305/project-two/application"
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          languages: java-kotlin
+          build-mode: manual
+          # Keep repository-relative paths in findings while building in temp.
+          source-root: ${{ runner.temp }}/cs305
+
+      - name: Compile Java for analysis
+        working-directory: ${{ runner.temp }}/cs305/project-two/application
+        run: |
+          mvn --version
+          mvn --batch-mode --no-transfer-progress clean compile
+
+      - name: Analyze and publish findings
+        uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          category: /language:java-kotlin
+          output: ${{ runner.temp }}/codeql-results
