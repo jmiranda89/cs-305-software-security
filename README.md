@@ -1,5 +1,9 @@
 # CS-305 Software Security
 
+[![Build and Test](https://github.com/jmiranda89/cs-305-software-security/actions/workflows/java-ci.yml/badge.svg?branch=main)](https://github.com/jmiranda89/cs-305-software-security/actions/workflows/java-ci.yml)
+[![CodeQL](https://github.com/jmiranda89/cs-305-software-security/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/jmiranda89/cs-305-software-security/actions/workflows/codeql.yml)
+[![Dependency Review](https://github.com/jmiranda89/cs-305-software-security/actions/workflows/dependency-review.yml/badge.svg?event=pull_request)](https://github.com/jmiranda89/cs-305-software-security/actions/workflows/dependency-review.yml)
+
 This repository contains my Project One and Project Two work for SNHU's CS-305 Software Security course. Both projects use the Artemis Financial scenario: a financial services company that needs to improve the security of its software and protect information sent through its application.
 
 Project One focuses on assessing an existing application and prioritizing changes. Project Two demonstrates SHA-256 checksum verification and HTTPS in a Spring Boot application. The original reports are preserved alongside the sanitized Project Two source.
