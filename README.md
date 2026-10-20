@@ -30,8 +30,6 @@ Project Two adds and tests checksum generation and encrypted transport. Its hist
 
 Java, Spring Boot 2.2.4.RELEASE, Maven, JUnit 5, Spring MockMvc, OWASP Dependency-Check, Java Keytool, PowerShell, and IntelliJ IDEA. Project One used Dependency-Check 12.2.2; Project Two uses 13.0.0. Local build and run instructions are in the [Project Two README](project-two/README.md).
 
-## What I learned
-
 ## What I Learned
 
 Connecting individual code decisions with potential security risks helped me a great deal during the manual assessment. Aside from the vulnerable dependencies, credentials in the source code, excessive permissions, missing validation, and unsafe error handling also have to be addressed.
