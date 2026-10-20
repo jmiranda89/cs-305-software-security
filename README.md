@@ -34,9 +34,9 @@ Java, Spring Boot 2.2.4.RELEASE, Maven, JUnit 5, Spring MockMvc, OWASP Dependenc
 
 The manual assessment helped me connect individual coding decisions to security risks. Credentials in source code, excessive permissions, missing validation, and unsafe error handling all need attention alongside vulnerable dependencies.
 
-The implementation work helped me understand how hashing and HTTPS serve different purposes. I used a SHA-256 checksum to compare data and TLS to encrypt communication. I also learned to verify the result independently instead of assuming that successful compilation proves the security feature works.
+Working on the implementation project really opened my eyes to how hashing and HTTPS do different jobs. For example, I used SHA-256 to generate a checksum and verify that the data was the same, and TLS to encrypt communications so they can't be easily read by third parties. One important thing I learned was to double-check results on my own, instead of just assuming that if the code compiles without errors, the security feature must be working right.
 
-Both projects reinforced that security is ongoing work. A functioning endpoint and a successful build do not mean an application is ready for production. Findings still need to be reviewed, prioritized, fixed, and tested again.
+So, when it comes to security, it's not a one-time thing — it's a continuous process. Just because you've got a working endpoint and a successful build, it doesn't mean your application is good to go for production. There's still a lot of work to be done, like reviewing findings, figuring out what needs to be fixed first, making those fixes, and then testing everything again.
 
 ## Limitations and remaining risks
 
