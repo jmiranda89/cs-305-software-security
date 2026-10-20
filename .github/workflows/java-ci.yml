@@ -1,0 +1,55 @@
+name: CS-305 Java CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 11 and Maven cache
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+          cache-dependency-path: project-two/application/pom.xml
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+          overwrite-settings: false
+
+      - name: Prepare temporary build directory
+        run: |
+          mkdir -p "$RUNNER_TEMP/project-two"
+          cp -R project-two/application "$RUNNER_TEMP/project-two/application"
+
+      - name: Build and run tests
+        working-directory: ${{ runner.temp }}/project-two/application
+        run: |
+          mvn --version
+          mvn --batch-mode --no-transfer-progress clean package
+
+      - name: Upload test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: java-test-results
+          path: |
+            ${{ runner.temp }}/project-two/application/target/surefire-reports/*.xml
+            ${{ runner.temp }}/project-two/application/target/surefire-reports/*.txt
+          if-no-files-found: warn
+          retention-days: 14

@@ -137,6 +137,40 @@ The first scan needs network access and may take a long time to populate the vul
 
 The historical report records 49 dependencies scanned (28 unique), 14 vulnerable dependencies, 254 findings, and zero suppressed findings on October 17, 2026. These are reported findings, not proof that all are exploitable. Fresh scan totals can change. The full original HTML report is not included in this repository.
 
+## CI/CD
+
+Four [GitHub Actions workflows](../.github/workflows/) automate build checks and security visibility. No workflow deploys or starts the HTTPS server. They retain Spring Boot 2.2.4.RELEASE and Dependency-Check 13.0.0.
+
+| Workflow / job | Triggers | Results and failure behavior |
+| --- | --- | --- |
+| [Java CI / Build and Test](../.github/workflows/java-ci.yml) | PRs targeting `main`, pushes to `main`, manual | Runs `mvn clean package` with Temurin Java 11 and the Ubuntu runner's Maven 3.8.1+; compilation or test failures fail the job. Surefire XML/text results are retained for 14 days. |
+| [CodeQL / Analyze Java](../.github/workflows/codeql.yml) | PRs targeting `main`, pushes to `main`, Tuesday 06:23 UTC, manual | Uses CodeQL action v4, `java-kotlin`, and a manual `mvn clean compile` build. Publishes Java security findings to code scanning. Requires the setup confirmation below. |
+| [Dependency Review / Review Dependency Changes](../.github/workflows/dependency-review.yml) | PRs targeting `main` | Compares dependency changes between the PR base and head. Fails for introduced high/critical known vulnerabilities in runtime, development, or unknown scopes. No advisory exceptions or warning-only mode are configured. |
+| [OWASP Dependency-Check / Scan Dependency Baseline](../.github/workflows/dependency-check.yml) | Wednesday 07:41 UTC, manual from `main` | Runs the POM's `dependency-check:check` goal and retains its HTML report for 30 days. A missing key, scan error, or missing report fails the job. |
+
+The workflows copy `project-two/application` to the runner's temporary directory before Maven builds or scans it. Maven dependencies are cached against the POM; PR jobs restore the cache without saving changes. The Ubuntu 24.04 image supplies Maven, and each Maven job logs its version. CodeQL uses a temporary source root that preserves `project-two/application` in finding paths.
+
+Normal Java CI uses `package`, not `verify`, so it does not run Dependency-Check or need `NVD_API_KEY`. The context and `/hash` tests use MockMvc without a network listener. They need no certificate or keystore password and do not verify TLS. CodeQL analyzes the application Java source compiled by Maven using its default security queries; it does not prove HTTPS behavior or replace dependency assessment.
+
+Dependency Review checks newly introduced dependencies. It does not fail an unrelated PR just because the unchanged application has historical findings. Dependency-Check assesses the current baseline, including older vulnerable libraries. The historical **254 findings across 14 vulnerable dependencies** remain unresolved. The POM has no CVSS failure threshold, so a successful Dependency-Check job means the assessment completed and produced a report; it does not mean the report is clean. No vulnerabilities are suppressed to pass these workflows.
+
+### Required GitHub configuration
+
+1. Enable GitHub Actions and allow the pinned official `actions/*` and `github/codeql-action` releases. This public repository is eligible for CodeQL and Dependency Review, but actual Actions policies, dependency-graph availability, and CodeQL default setup could not be verified: the implementation account had read-only access and the relevant APIs returned 403. Branch protection also could not be confirmed. An empty branch-rules response does not establish that all protection is absent.
+2. Check **Settings → Advanced Security → CodeQL analysis** before activating advanced analysis. If default setup is enabled, switch to advanced setup and disable default setup first. Then create the repository Actions variable **`CODEQL_ADVANCED_SETUP`** with the value **`true`** under **Settings → Secrets and variables → Actions → Variables**. Until this is confirmed, the advanced job fails before CodeQL initialization and clearly reports that analysis did not run. Keep default and advanced analysis from running together. If retaining default setup, leave the variable unset and remove this advanced workflow before requiring a CodeQL check.
+3. Enable the dependency graph under the repository security settings and confirm Dependency Review can read PR dependency changes. Public-repository eligibility alone does not prove it is operational. An API or feature failure must be resolved; the workflow does not turn it into a passing review.
+4. Under **Settings → Secrets and variables → Actions → Secrets**, add a repository secret named **`NVD_API_KEY`**. Use a new or rotated NVD key because a previously used key may have been exposed in an old assignment archive. Enter it only into GitHub's secret field; do not put it in source, YAML, command arguments, or logs. No existing key was requested or inspected during implementation.
+
+After the workflow is on `main`, open [Actions](https://github.com/jmiranda89/cs-305-software-security/actions), select **OWASP Dependency-Check**, choose **Run workflow**, and select **main**. Other branches are rejected before the secret is used. Scheduled runs use the default branch and may be delayed by GitHub. The first NVD database update can take time; API limits, network errors, or the 90-minute job limit can prevent completion.
+
+Open the run's **Summary** and job logs for build/test results and Dependency Review findings. Download **java-test-results** for Surefire XML/text output. For Dependency-Check, read the scan summary, logs, and **dependency-check-report** HTML artifact, including reports uploaded after a scan failure when available. CodeQL findings appear under [Security → Code scanning](https://github.com/jmiranda89/cs-305-software-security/security/code-scanning). A successful CodeQL analysis can still publish findings; merge policies for those alerts are configured separately.
+
+Require **Build and Test** and **Review Dependency Changes** in branch protection after their first hosted runs succeed. Require **Analyze Java** once advanced setup and result uploads are verified. The workflows alone do not configure merge protection. PR workflows run for documentation-only changes too, so required checks are not left pending by path filters. Do not make the scheduled Dependency-Check job a PR requirement.
+
+Workflow tokens have `contents: read`; only the CodeQL job also requests `security-events: write`. Checkout does not persist Git credentials. Actions are pinned to verified release commit hashes. PR jobs receive no NVD secret, and no workflow uses `pull_request_target`, creates certificates, disables TLS verification, or uploads application packages or keystores. The report upload paths are restricted to test results and the dependency HTML report.
+
+The [GitHub advanced setup documentation](https://docs.github.com/en/code-security/how-tos/find-and-fix-code-vulnerabilities/configure-code-scanning/configuring-advanced-setup-for-code-scanning), [Dependency Review action documentation](https://github.com/actions/dependency-review-action), and [Dependency-Check Maven goal documentation](https://dependency-check.github.io/DependencyCheck/dependency-check-maven/check-mojo.html) describe the setup and result behavior. Hosted checks, live CodeQL uploads, Dependency Review operation, and a fresh NVD assessment still need verification with repository access. Passing Java CI does not establish production readiness or resolve the historical dependency risks.
+
 ## Portfolio Validation
 
 The original `MessageDigest` implementation and Spring Boot dependency versions are preserved. Portfolio cleanup adds an endpoint response regression test, replaces the leftover configuration placeholder comment, and moves the development keystore outside the classpath. The server is restricted to loopback for local use.

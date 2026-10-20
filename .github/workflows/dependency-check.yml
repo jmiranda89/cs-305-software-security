@@ -1,0 +1,84 @@
+name: OWASP Dependency-Check
+
+on:
+  schedule:
+    - cron: '41 7 * * 3'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-check:
+    name: Scan Dependency Baseline
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Require main for the credentialed scan
+        if: ${{ github.ref != 'refs/heads/main' }}
+        run: |
+          echo '::error::Run this credentialed assessment from main.'
+          exit 1
+
+      - name: Require NVD API key
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [[ -z "$NVD_API_KEY" ]]; then
+            echo '::error::Dependency-Check did not run. Configure the NVD_API_KEY repository secret with a new or rotated key.'
+            echo 'Dependency-Check did not run: NVD_API_KEY is missing.' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 11 and Maven cache
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+          cache-dependency-path: project-two/application/pom.xml
+          overwrite-settings: false
+
+      - name: Prepare temporary scan directory
+        run: |
+          mkdir -p "$RUNNER_TEMP/project-two"
+          cp -R project-two/application "$RUNNER_TEMP/project-two/application"
+
+      - name: Run dependency assessment
+        id: scan
+        working-directory: ${{ runner.temp }}/project-two/application
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          mvn --version
+          mvn --batch-mode --no-transfer-progress dependency-check:check \
+            -DdataDirectory="$RUNNER_TEMP/dependency-check-data" \
+            -Dodc.outputDirectory="$RUNNER_TEMP/dependency-check-report" \
+            -Dformat=HTML
+          test -s "$RUNNER_TEMP/dependency-check-report/dependency-check-report.html"
+
+      - name: Upload dependency report
+        if: ${{ !cancelled() && steps.scan.outcome != 'skipped' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dependency-check-report
+          path: ${{ runner.temp }}/dependency-check-report/dependency-check-report.html
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Explain scan result
+        if: ${{ !cancelled() && steps.scan.outcome != 'skipped' }}
+        env:
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+        run: |
+          if [[ "$SCAN_OUTCOME" == 'success' ]]; then
+            echo 'Dependency-Check completed and generated an HTML report. This is not a clean vulnerability result: the existing POM has no CVSS failure threshold. Review the report and scan logs.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Dependency-Check failed. A complete assessment is not confirmed. Review the scan logs and any available report.' >> "$GITHUB_STEP_SUMMARY"
+          fi
