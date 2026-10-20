@@ -34,7 +34,17 @@ Java, Spring Boot 2.2.4.RELEASE, Maven, JUnit 5, Spring MockMvc, OWASP Dependenc
 
 The manual assessment helped me connect individual coding decisions to security risks. Credentials in source code, excessive permissions, missing validation, and unsafe error handling all need attention alongside vulnerable dependencies.
 
+I did well at combining manual code review with dependency scanning and checking whether findings depended on the application's configuration. Secure coding helps Artemis Financial protect customer and financial information, keep its services available, and maintain customer trust and the company's reputation.
+
 Working on the implementation project really opened my eyes to how hashing and HTTPS do different jobs. For example, I used SHA-256 to generate a checksum and verify that the data was the same, and TLS to encrypt communications so they can't be easily read by third parties. One important thing I learned was to double-check results on my own, instead of just assuming that if the code compiles without errors, the security feature must be working right.
+
+I added layers of security by configuring HTTPS on port 8443 with a self-signed certificate, using SHA-256 for checksum verification, and reading the keystore password from an environment variable. For future assessments, I would use manual review and OWASP Dependency-Check, then prioritize fixes based on severity, exploitability, runtime configuration, and business impact. I would check which code an attacker could reach and choose mitigations that protect customer information and service availability.
+
+I checked the refactored application by compiling it with Maven, running the automated context and `/hash` response tests, verifying HTTP 200 over HTTPS, and comparing the Java checksum with an independent PowerShell calculation. I also used manual code and configuration review and OWASP Dependency-Check after refactoring to look for security issues. These checks do not prove that no new vulnerabilities were introduced. The historical scan still reported unresolved findings, and a fresh scan did not complete during the later portfolio validation.
+
+In future projects, I would reuse Java's MessageDigest with explicit UTF-8 encoding, Java Keytool for local test certificates, Maven for builds, dependency scanning, and automated tests. I would also keep using independent checksum checks, keep passwords in environment variables, and keep private keys out of Git.
+
+I could show future employers my Project One assessment to demonstrate how I identify risks and explain mitigation recommendations. My Project Two report, `/hash` implementation, and testing evidence show how I can add a focused security feature and verify its behavior while documenting what still needs work.
 
 So, when it comes to security, it's not a one-time thing — it's a continuous process. Just because you've got a working endpoint and a successful build, it doesn't mean your application is good to go for production. There's still a lot of work to be done, like reviewing findings, figuring out what needs to be fixed first, making those fixes, and then testing everything again.
 
